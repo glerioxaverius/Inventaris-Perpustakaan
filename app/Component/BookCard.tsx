@@ -1,12 +1,15 @@
+import { useRouter } from "next/navigation";
 import { Book } from "../lib/types";
 import Link from "next/link";
 
 interface BookCardProps {
   book: Book;
   onDelete: (id: string) => void;
+  onStatusChange: () => void;
 }
 
-const BookCard = ({ book, onDelete }: BookCardProps) => {
+const BookCard = ({ book, onDelete, onStatusChange }: BookCardProps) => {
+  const router = useRouter();
   const handleDelete = async () => {
     if (confirm("Apakah Anda yakin ingin menghapus buku ini?")) {
       try {
@@ -14,10 +17,36 @@ const BookCard = ({ book, onDelete }: BookCardProps) => {
           method: "DELETE",
         });
         if (!response.ok) throw new Error("Gagal menghapus buku");
-        onDelete(book.id); // Panggil fungsi dari induk untuk update UI
+        onDelete(book.id);
       } catch (error) {
         alert("Terjadi kesalahan saat menghapus buku.");
       }
+    }
+  };
+
+  const handleBorrow = async () => {
+    const memberId = prompt(
+      "Masukkan ID Anggota yang meminjam (contoh: P001):"
+    );
+    if (!memberId) return;
+
+    try {
+      const response = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId: book.id, memberId: memberId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Gagal meminjam buku");
+      }
+
+      alert(`Buku "${book.title}" berhasil dipinjam oleh anggota ${memberId}`);
+      onStatusChange();
+    } catch (error: any) {
+      alert(`Error: ${error.message}`);
     }
   };
 
@@ -38,19 +67,29 @@ const BookCard = ({ book, onDelete }: BookCardProps) => {
           </span>
         </div>
       </div>
-      <div className="mt-4 flex gap-2">
-        <Link
-          href={`/books/edit/${book.id}`}
-          className="w-full bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600 text-sm text-center"
-        >
-          Edit
-        </Link>
-        <button
-          onClick={handleDelete}
-          className="w-full bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600 text-sm"
-        >
-          Hapus
-        </button>
+      <div className="mt-4 flex flex-col gap-2">
+        {book.status === "tersedia" && (
+          <button
+            onClick={handleBorrow}
+            className="w-full bg-green-500 text-white py-1 px-3 rounded hover:bg-green-600 text-sm"
+          >
+            Pinjam
+          </button>
+        )}
+        <div className="flex gap-2">
+          <Link
+            href={`/books/edit/${book.id}`}
+            className="w-full bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600 text-sm text-center"
+          >
+            Edit
+          </Link>
+          <button
+            onClick={handleDelete}
+            className="w-full bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600 text-sm"
+          >
+            Hapus
+          </button>
+        </div>
       </div>
     </div>
   );

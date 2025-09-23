@@ -17,7 +17,7 @@ export interface Member {
 export interface Transaction {
   id: string;
   bookId: string;
-  memberid: string;
-  borrowDate: Date;
-  returnDate?: Date;
+  memberId: string;
+  borrowDate: String;
+  returnDate?: String;
 }

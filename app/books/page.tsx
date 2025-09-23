@@ -9,24 +9,29 @@ export default function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const response = await fetch("/api/books");
-        const data = await response.json();
-        setBooks(data);
-      } catch (error) {
-        console.error("Gagal mengambil data buku: ", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchBooks = async () => {
+    try {
+      const response = await fetch("/api/books");
+      const data = await response.json();
+      setBooks(data);
+    } catch (error) {
+      console.error("Gagal mengambil data buku:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchBooks();
   }, []);
 
   const handleBookDeleted = (deletedBookId: string) => {
     setBooks(books.filter((book) => book.id !== deletedBookId));
+  };
+
+  const refreshBooks = () => {
+    setLoading(true);
+    fetchBooks();
   };
 
   if (loading) {
@@ -46,7 +51,12 @@ export default function BooksPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {books.map((book) => (
-          <BookCard key={book.id} book={book} onDelete={handleBookDeleted} />
+          <BookCard
+            key={book.id}
+            book={book}
+            onDelete={handleBookDeleted}
+            onStatusChange={refreshBooks}
+          />
         ))}
       </div>
     </div>
