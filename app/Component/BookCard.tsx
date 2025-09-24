@@ -50,6 +50,26 @@ const BookCard = ({ book, onDelete, onStatusChange }: BookCardProps) => {
     }
   };
 
+  const handleReturn = async () => {
+    try {
+      const response = await fetch("/api/transactions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId: book.id }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Gagal mengembalikan buku");
+      }
+
+      alert(`Buku "${book.title}" berhasil dikembalikan.`);
+      onStatusChange();
+    } catch (error: any) {
+      alert(`Error: ${error.message}`);
+    }
+  };
+
   const statusClass =
     book.status === "tersedia" ? "bg-green-500" : "bg-yellow-500";
 
@@ -68,12 +88,20 @@ const BookCard = ({ book, onDelete, onStatusChange }: BookCardProps) => {
         </div>
       </div>
       <div className="mt-4 flex flex-col gap-2">
-        {book.status === "tersedia" && (
+        {/* Logika Tombol yang Diubah */}
+        {book.status === "tersedia" ? (
           <button
             onClick={handleBorrow}
             className="w-full bg-green-500 text-white py-1 px-3 rounded hover:bg-green-600 text-sm"
           >
             Pinjam
+          </button>
+        ) : (
+          <button
+            onClick={handleReturn}
+            className="w-full bg-orange-500 text-white py-1 px-3 rounded hover:bg-orange-600 text-sm"
+          >
+            Kembalikan
           </button>
         )}
         <div className="flex gap-2">

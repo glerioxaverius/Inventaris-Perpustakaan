@@ -27,28 +27,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Buku sedang dipinjam' }, { status: 409 }); // 409 Conflict
     }
 
-    export async function PUT(request: Request) {
-        try {
-            const {bookId} = await request.json();
-
-            if (!bookId) {
-                return NextResponse.json({message: 'ID Buku diperlukan'}, {status: 400});
-            }
-
-            const book = books.find((b) => b.id === bookId);
-            if (!book) {
-                return NextResponse.json({message: 'Buku tidak ditemukan'}, {status: 404});
-            }
-
-            const activetransaction = transactions.find(
-                (t) => t.bookId === bookId && !t.returndate
-            );
-            if (!activeTransaction) {
-                return NextResponse.json({message: 'Buku ini tidak sedang dalam status dipinjam'}, {status: 404});
-            }
-        }
-    }
-
     book.status = 'dipinjamkan';
 
     const newTransaction: Transaction = {
@@ -65,3 +43,33 @@ export async function POST(request: Request) {
         return NextResponse.json({message: 'Terjadi kesalahan pada server'}, {status: 500});
     }
 }
+
+export async function PUT(request: Request) {
+        try {
+            const {bookId} = await request.json();
+
+            if (!bookId) {
+                return NextResponse.json({message: 'ID Buku diperlukan'}, {status: 400});
+            }
+
+            const book = books.find((b) => b.id === bookId);
+            if (!book) {
+                return NextResponse.json({message: 'Buku tidak ditemukan'}, {status: 404});
+            }
+
+            const activeTransaction = transactions.find(
+                (t) => t.bookId === bookId && !t.returnDate
+            );
+            if (!activeTransaction) {
+                return NextResponse.json({message: 'Buku ini tidak sedang dalam status dipinjam'}, {status: 404});
+            }
+
+            book.status = 'tersedia';
+
+            activeTransaction.returnDate = new Date().toISOString();
+
+            return NextResponse.json(activeTransaction);
+        } catch(error) {
+            return NextResponse.json({message: 'Terjadi kesalahan pada server'}, {status: 500});
+        }
+    }
