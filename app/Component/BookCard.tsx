@@ -31,7 +31,7 @@ const BookCard = ({ book, onDelete, onStatusChange }: BookCardProps) => {
     if (!memberId) return;
 
     try {
-      const response = await fetch("/api/transactions", {
+      const response = await fetch("api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookId: book.id, memberId: memberId }),

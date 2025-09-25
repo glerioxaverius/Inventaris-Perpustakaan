@@ -29,7 +29,7 @@ export default function BooksPage() {
     setBooks(books.filter((book) => book.id !== deletedBookId));
   };
 
-  const refreshBooks = () => {
+  const handleStatusChange = () => {
     setLoading(true);
     fetchBooks();
   };
@@ -55,7 +55,7 @@ export default function BooksPage() {
             key={book.id}
             book={book}
             onDelete={handleBookDeleted}
-            onStatusChange={refreshBooks}
+            onStatusChange={handleStatusChange}
           />
         ))}
       </div>
