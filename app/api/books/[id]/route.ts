@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
-import { books } from '@/app/api/books/route'; 
+import { supabase } from '@/lib/supabaseClient'
+
 
 export async function GET(
   request: Request,
-  {params}: {params: {id: string}}
+  { params }: { params: { id: string } }
 ) {
-  const id = params.id;
-  const book = books.find((b) => b.id === id);
+  const { id } = params;
+  const { data: book, error } = await supabase
+    .from('Books')
+    .select('*')
+    .eq('id', id)
+    .single(); 
 
-  if (!book) {
-    return NextResponse.json({message: 'Buku tidak ditemukan'}, {status: 404});
+  if (error || !book) {
+    return NextResponse.json({ message: 'Buku tidak ditemukan' }, { status: 404 });
   }
 
   return NextResponse.json(book);
@@ -17,33 +22,38 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  {params}: {params: {id:string}}
+  { params }: { params: { id:string } }
 ) {
-  const id = params.id;
-  const index = books.findIndex((book) => book.id === id);
+  const { id } = params;
+  const updatedData = await request.json();
 
-  if (index === -1) {
-    return NextResponse.json({message: 'Buku tidak ditemukan'}, {status: 404});
+  const { data: updatedBook, error } = await supabase
+    .from('Books')
+    .update(updatedData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const updateData = await request.json();
-  books[index] = {...books[index], ...updateData};
-
-  return NextResponse.json(books[index]);
-} 
+  return NextResponse.json(updatedBook);
+}
 
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const id = params.id;
-  const index = books.findIndex((book) => book.id === id);
+  const { id } = params;
+  const { error } = await supabase
+    .from('Books')
+    .delete()
+    .eq('id', id);
 
-  if (index === -1) {
-    return NextResponse.json({ message: 'Buku tidak ditemukan' }, { status: 404 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  books.splice(index, 1);
 
   return NextResponse.json({ message: 'Buku berhasil dihapus' }, { status: 200 });
 }

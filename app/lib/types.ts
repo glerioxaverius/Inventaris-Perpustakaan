@@ -10,8 +10,9 @@ export interface Book {
 export interface Member {
   id: string;
   name: string;
-  memberId: string;
+  unique_member_id: string;
   phone: string;
+  created_at: string;
 }
 
 export interface Transaction {

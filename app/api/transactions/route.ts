@@ -1,75 +1,94 @@
-import { NextResponse } from "next/server";
-import { Transaction } from "@/app/lib/types";
-import { books } from "../books/route";
-import { members } from "../members/route";
-
-let transactions: Transaction[] = [];
+import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabaseClient';
 
 export async function POST(request: Request) {
-    try {
-        const {bookId, memberId} = await request.json();
+  try {
+    const { bookId, memberId } = await request.json();
 
-        if (!bookId || !memberId) {
-            return NextResponse.json({ message:'ID Buku dan ID Anggota diperlukan' }, {status: 400});
-        }
+    if (!bookId || !memberId) {
+      return NextResponse.json({ message: 'ID Buku dan ID Anggota diperlukan' }, { status: 400 });
+    }
 
-        const book = books.find((b) => b.id === bookId);
-        const member = members.find((m) => m.memberId === memberId);
+    const { data: member, error: memberError } = await supabase
+      .from('Members')
+      .select('id') 
+      .eq('unique_member_id', memberId) 
+      .single();
 
-        if (!member) {
+    if (memberError || !member) {
       return NextResponse.json({ message: 'Anggota tidak ditemukan' }, { status: 404 });
     }
-    if (!book) {
+
+    const { data: book, error: bookError } = await supabase
+      .from('Books')
+      .select('id, status')
+      .eq('id', bookId)
+      .single();
+    
+    if (bookError || !book) {
       return NextResponse.json({ message: 'Buku tidak ditemukan' }, { status: 404 });
     }
 
-    if (book.status === 'dipinjamkan') {
-      return NextResponse.json({ message: 'Buku sedang dipinjam' }, { status: 409 }); // 409 Conflict
+    if (book.status === 'dipinjam') {
+      return NextResponse.json({ message: 'Buku sedang dipinjam' }, { status: 409 });
     }
 
-    book.status = 'dipinjamkan';
+    const { error: updateBookError } = await supabase
+      .from('Books')
+      .update({ status: 'dipinjam' })
+      .eq('id', bookId);
 
-    const newTransaction: Transaction = {
-        id: `T${transactions.length + 1}`,
-        bookId,
-        memberId,
-        borrowDate: new Date().toISOString(),
-    };
-    transactions.push(newTransaction);
+    if (updateBookError) throw updateBookError;
 
-    return NextResponse.json(newTransaction,  {status: 201});
+    // 6. Buat transaksi baru di tabel Transactions
+    const { data: newTransaction, error: insertTransactionError } = await supabase
+      .from('Transactions')
+      .insert({ book_id: book.id, member_id: member.id }) // Gunakan UUID
+      .select()
+      .single();
+    
+    if (insertTransactionError) throw insertTransactionError;
 
-    } catch (error) {
-        return NextResponse.json({message: 'Terjadi kesalahan pada server'}, {status: 500});
-    }
+    return NextResponse.json(newTransaction, { status: 201 });
+
+  } catch (error: any) {
+    console.error("Transaction Error:", error);
+    return NextResponse.json({ message: error.message || 'Terjadi kesalahan pada server' }, { status: 500 });
+  }
 }
 
+
+// Fungsi untuk mengupdate transaksi (mengembalikan buku)
 export async function PUT(request: Request) {
-        try {
-            const {bookId} = await request.json();
-
-            if (!bookId) {
-                return NextResponse.json({message: 'ID Buku diperlukan'}, {status: 400});
-            }
-
-            const book = books.find((b) => b.id === bookId);
-            if (!book) {
-                return NextResponse.json({message: 'Buku tidak ditemukan'}, {status: 404});
-            }
-
-            const activeTransaction = transactions.find(
-                (t) => t.bookId === bookId && !t.returnDate
-            );
-            if (!activeTransaction) {
-                return NextResponse.json({message: 'Buku ini tidak sedang dalam status dipinjam'}, {status: 404});
-            }
-
-            book.status = 'tersedia';
-
-            activeTransaction.returnDate = new Date().toISOString();
-
-            return NextResponse.json(activeTransaction);
-        } catch(error) {
-            return NextResponse.json({message: 'Terjadi kesalahan pada server'}, {status: 500});
-        }
+  try {
+    const { bookId } = await request.json();
+    if (!bookId) {
+      return NextResponse.json({ message: 'ID Buku diperlukan' }, { status: 400 });
     }
+
+    // 1. Update status buku menjadi 'tersedia'
+    const { error: updateBookError } = await supabase
+      .from('Books')
+      .update({ status: 'tersedia' })
+      .eq('id', bookId);
+    
+    if (updateBookError) throw updateBookError;
+
+    // 2. Update transaksi yang aktif, catat tanggal pengembalian
+    const { data: updatedTransaction, error: updateTransactionError } = await supabase
+      .from('Transactions')
+      .update({ return_date: new Date().toISOString() })
+      .eq('book_id', bookId)
+      .is('return_date', null) // Hanya update yg belum dikembalikan
+      .select()
+      .single();
+
+    if (updateTransactionError) throw updateTransactionError;
+
+    return NextResponse.json(updatedTransaction);
+
+  } catch (error: any) {
+    console.error("Return Error:", error);
+    return NextResponse.json({ message: error.message || 'Terjadi kesalahan pada server' }, { status: 500 });
+  }
+}

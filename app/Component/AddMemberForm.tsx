@@ -15,22 +15,26 @@ export default function AddMemberForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/members", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, memberId, phone }),
+      const response = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application.json' },
+        body: JSON.stringify({
+          name,
+          unique_member_id: memberId,
+          phone
+        }),
       });
 
-      if (!response.ok) throw new Error("Gagal menambahkan anggota");
-
-      alert("Anggota berhasil ditambahkan!");
-      router.push("/members");
-    } catch (error) {
-      alert("Terjadi kesalahan, coba lagi.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      if (!response.ok) throw new Error('Gagal menambahkan anggota');
+          
+          alert('Anggota berhasil ditambahkan!');
+          router.push('/members');
+        } catch (error) {
+          alert('Terjadi kesalahan, coba lagi.');
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">

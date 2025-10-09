@@ -70,8 +70,7 @@ const BookCard = ({ book, onDelete, onStatusChange }: BookCardProps) => {
     }
   };
 
-  const statusClass =
-    book.status === "tersedia" ? "bg-green-500" : "bg-yellow-500";
+  const statusClass = book.status === 'tersedia' ? 'bg-green-500' : 'bg-yellow-500';
 
   return (
     <div className="border rounded-lg p-4 shadow-lg flex flex-col justify-between">

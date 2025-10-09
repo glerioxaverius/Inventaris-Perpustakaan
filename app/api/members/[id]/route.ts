@@ -1,50 +1,55 @@
 import { NextResponse } from 'next/server';
-import { members } from '../route';
+import { supabase } from '@/lib/supabaseClient';
 
-// Handler untuk GET (mengambil satu anggota)
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params: {id} }: { params: { id: string } }
 ) {
-  const { id } = params; // Perbaikan di sini
-  const member = members.find((m) => m.id === id);
+  const { data: member, error } = await supabase
+    .from('Members')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-  if (!member) {
+  if (error || !member) {
     return NextResponse.json({ message: 'Anggota tidak ditemukan' }, { status: 404 });
   }
+
   return NextResponse.json(member);
 }
 
-// Handler untuk PUT (mengupdate anggota)
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params: {id} }: { params: { id:string } }
 ) {
-  const { id } = params; // Perbaikan di sini
-  const index = members.findIndex((m) => m.id === id);
+    const updatedData = await request.json();
+  
+  const { data: updatedMember, error } = await supabase
+    .from('Members')
+    .update(updatedData)
+    .eq('id', id)
+    .select()
+    .single();
 
-  if (index === -1) {
-    return NextResponse.json({ message: 'Anggota tidak ditemukan' }, { status: 404 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const updatedData = await request.json();
-  members[index] = { ...members[index], ...updatedData };
-
-  return NextResponse.json(members[index]);
+  return NextResponse.json(updatedMember);
 }
 
-// Handler untuk DELETE
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params: {id} }: { params: { id: string } }
 ) {
-  const { id } = params; // Perbaikan di sini
-  const index = members.findIndex((m) => m.id === id);
+  const { error } = await supabase
+    .from('Members')
+    .delete()
+    .eq('id', id);
 
-  if (index === -1) {
-    return NextResponse.json({ message: 'Anggota tidak ditemukan' }, { status: 404 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  members.splice(index, 1);
   return NextResponse.json({ message: 'Anggota berhasil dihapus' }, { status: 200 });
 }
